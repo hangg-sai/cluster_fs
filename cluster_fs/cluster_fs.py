@@ -1,28 +1,24 @@
-import json
-import mimetypes
 import os
-import re
-import stat
-import sys
-import urllib
+import os.path as osp
+import urllib.parse
 
-from flask import Flask, make_response, render_template, send_file
+from flask import Flask, make_response, render_template, request, send_file
 from flask.views import MethodView
 
 app = Flask(__name__)
 
 
 def get_type(path):
-    if os.path.isdir(path):
+    if osp.isdir(path):
         return "dir"
-    if os.path.islink(path):
+    if osp.islink(path):
         return "link"
 
     IMG_EXT = set([".jpg", ".jpeg", ".png", ".gif"])
     VID_EXT = set([".mp4", ".webm", ".mov"])
     GLB_EXT = set([".glb", ".gltf"])
 
-    ext = os.path.splitext(path)[-1].lower()
+    ext = osp.splitext(path)[-1].lower()
     if ext in IMG_EXT:
         return "image"
     if ext in VID_EXT:
@@ -38,14 +34,15 @@ class PathView(MethodView):
         self.root = root
 
     def get(self, p=""):
-        path = os.path.join(self.root, p)
-        print(path)
+        path = osp.join(self.root, p)
+        show_hidden = request.args.get("show_hidden", "0") == "1"
+        print(show_hidden)
 
         def get_urlname(name):
             # url from the root path
-            return os.path.join("/", p, name)
+            return osp.join("/", p, name)
 
-        if os.path.isdir(path):
+        if osp.isdir(path):
             title = f"Contents of {path}"
             contents = []
             for filename in sorted(os.listdir(path)):
@@ -53,7 +50,7 @@ class PathView(MethodView):
                     continue
 
                 # absolute path
-                filepath = os.path.join(path, filename)
+                filepath = osp.join(path, filename)
                 urlname = get_urlname(filename)
 
                 stat_res = os.stat(filepath)
@@ -75,19 +72,19 @@ class PathView(MethodView):
 
                 contents.append(info)
 
-            parent = os.path.dirname(p.rstrip("/"))
+            parent = osp.dirname(p.rstrip("/"))
             page = render_template(
                 "index.html",
                 title=title,
-                parent=os.path.join(self.root, parent),
-                parent_url=urllib.parse.quote(os.path.join("/", parent)),
+                parent=osp.join(self.root, parent),
+                parent_url=urllib.parse.quote(osp.join("/", parent)),
                 contents=contents,
             )
             res = make_response(page, 200)
 
-        elif os.path.isfile(path):
+        elif osp.isfile(path):
             print(path)
-            res = send_file(os.path.abspath(path))
+            res = send_file(osp.abspath(path))
 
         else:
             res = make_response("Not found", 404)
@@ -101,7 +98,7 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument(
-        "--root", help="Root of filesystem browser.", default=os.path.abspath(".")
+        "--root", help="Root of filesystem browser.", default=osp.abspath(".")
     )
     parser.add_argument("--bind", help="Host to bind server to.", default="localhost")
     parser.add_argument("--port", help="Port to bind server to.", default="8081")
