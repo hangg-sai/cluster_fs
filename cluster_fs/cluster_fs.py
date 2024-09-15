@@ -1,17 +1,13 @@
-from flask import (
-    Flask,
-    make_response,
-    render_template,
-    send_file,
-)
-from flask.views import MethodView
+import json
+import mimetypes
 import os
 import re
 import stat
-import json
-import mimetypes
 import sys
 import urllib
+
+from flask import Flask, make_response, render_template, send_file
+from flask.views import MethodView
 
 app = Flask(__name__)
 
@@ -101,8 +97,12 @@ class PathView(MethodView):
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--root", help="Root of filesystem browser.", default=os.path.abspath("."))
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument(
+        "--root", help="Root of filesystem browser.", default=os.path.abspath(".")
+    )
     parser.add_argument("--bind", help="Host to bind server to.", default="localhost")
     parser.add_argument("--port", help="Port to bind server to.", default="8081")
     args = parser.parse_args()
